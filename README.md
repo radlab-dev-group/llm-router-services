@@ -1,6 +1,6 @@
 # llm_router_services
 
-## Overview
+## ✨ Overview
 
 `llm_router_services` provides **HTTP services** that implement the core functionality used by the LLM‑Router’s plugin
 system.  
@@ -17,6 +17,12 @@ Key components:
 | **requirements‑gpu.txt** | Lists heavy dependencies (e.g., `transformers`) required for GPU‑accelerated inference.                                                                                                                                            |
 
 The services are **stateless**; they load their models once at start‑up and then serve requests over HTTP.
+
+---
+
+## 📜 License
+
+See the [LICENSE](LICENSE) file.
 
 ---
 
