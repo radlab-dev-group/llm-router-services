@@ -4,34 +4,30 @@ from typing import Any, Dict
 from flask import Flask, request, jsonify
 
 from llm_router_services.guardrails.constants import SERVICES_API_PREFIX
-from llm_router_services.guardrails.inference.factory import GuardrailModelFactory
+from llm_router_services.guardrails.inference.factory import (
+    GuardrailClassifierModelFactory,
+)
 
-# Import the NASK‑specific configuration
 from llm_router_services.guardrails.nask.config import NaskModelConfig
 
-# -----------------------------------------------------------------------
-# Environment prefix – all configuration keys start with this value
-# -----------------------------------------------------------------------
 _ENV_PREFIX = "LLM_ROUTER_NASK_PIB_GUARD_"
 
 app = Flask(__name__)
 
-MODEL_PATH = os.getenv(
-    f"{_ENV_PREFIX}MODEL_PATH",
-    "/mnt/data2/llms/models/community/NASK-PIB/HerBERT-PL-Guard",
-)
+MODEL_PATH = os.getenv(f"{_ENV_PREFIX}MODEL_PATH", None)
+if not MODEL_PATH:
+    raise Exception(
+        f"NASK-PIB guardrail model path is not set! "
+        f"Export {_ENV_PREFIX}MODEL_PATH with proper model path"
+    )
 
-# Keep only a single constant for the device (CPU by default)
 DEFAULT_DEVICE = int(os.getenv(f"{_ENV_PREFIX}DEVICE", "-1"))
 
-# -----------------------------------------------------------------------
-# Build the guardrail object via the factory, passing the NASK‑specific config
-# -----------------------------------------------------------------------
-guardrail = GuardrailModelFactory(
+guardrail = GuardrailClassifierModelFactory(
     model_type="text_classification",
     model_path=MODEL_PATH,
     device=DEFAULT_DEVICE,
-    config=NaskModelConfig(),  # <-- NASK‑specific thresholds & batch size
+    config=NaskModelConfig(),
 )
 
 

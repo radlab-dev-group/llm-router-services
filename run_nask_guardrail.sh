@@ -16,8 +16,6 @@
 : "${LLM_ROUTER_NASK_PIB_GUARD_MODEL_PATH:=NASK-PIB/HerBERT-PL-Guard}"
 : "${LLM_ROUTER_NASK_PIB_GUARD_DEVICE:=0}"
 
-#: "${LLM_ROUTER_NASK_PIB_GUARD_MODEL_PATH:=/mnt/data2/llms/models/community/NASK-PIB/HerBERT-PL-Guard}"
-
 # Export them so the Python process can read them
 export LLM_ROUTER_NASK_PIB_GUARD_FLASK_HOST
 export LLM_ROUTER_NASK_PIB_GUARD_FLASK_PORT

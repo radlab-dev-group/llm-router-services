@@ -48,4 +48,4 @@ def create(
 
 
 # Public alias expected by the Flask app
-GuardrailModelFactory = create
+GuardrailClassifierModelFactory = create
