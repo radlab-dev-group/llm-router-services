@@ -7,35 +7,41 @@ from llm_router_services.guardrails.constants import SERVICES_API_PREFIX
 from llm_router_services.guardrails.inference.factory import (
     GuardrailClassifierModelFactory,
 )
+from llm_router_services.guardrails.speakleash.config import SojkaModelConfig
 
-from llm_router_services.guardrails.nask.config import NaskModelConfig
-
-_ENV_PREFIX = "LLM_ROUTER_NASK_PIB_GUARD_"
+# -----------------------------------------------------------------------
+# Environment prefix – all configuration keys start with this value
+# -----------------------------------------------------------------------
+_ENV_PREFIX = "LLM_ROUTER_SOJKA_GUARD_"
 
 app = Flask(__name__)
 
 MODEL_PATH = os.getenv(f"{_ENV_PREFIX}MODEL_PATH", None)
 if not MODEL_PATH:
     raise Exception(
-        f"NASK-PIB guardrail model path is not set! "
+        f"Sojka guardrail model path is not set! "
         f"Export {_ENV_PREFIX}MODEL_PATH with proper model path"
     )
 
+# Keep only a single constant for the device (CPU by default)
 DEFAULT_DEVICE = int(os.getenv(f"{_ENV_PREFIX}DEVICE", "-1"))
 
+# -----------------------------------------------------------------------
+# Build the guardrail object via the factory, passing the Sojka‑specific config
+# -----------------------------------------------------------------------
 guardrail = GuardrailClassifierModelFactory(
     model_type="text_classification",
     model_path=MODEL_PATH,
     device=DEFAULT_DEVICE,
-    config=NaskModelConfig(),
+    config=SojkaModelConfig(),
 )
 
 
 # -----------------------------------------------------------------------
-# Endpoint: POST /api/guardrails/nask_guard
+# Endpoint: POST /api/guardrails/sojka_guard
 # -----------------------------------------------------------------------
-@app.route(f"{SERVICES_API_PREFIX}/nask_guard", methods=["POST"])
-def nask_guardrail():
+@app.route(f"{SERVICES_API_PREFIX}/sojka_guard", methods=["POST"])
+def sojka_guardrail():
     """
     Accepts a JSON payload, classifies the content and returns the aggregated results.
     """
