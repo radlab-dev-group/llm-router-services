@@ -22,6 +22,9 @@ The services are **stateless**; they load their models once at start‑up and th
 
 ## 🛡️ Guardrails
 
+Full documentation for the guardrails sub‑package is available
+in [guardrail-readme](llm_router_services/guardrails/README.md).
+
 The **guardrail** sub‑package implements safety‑checking services that can be queried via HTTP:
 
 | Service                  | Model                               | Endpoint                           | Description                                                                                                                                    |
