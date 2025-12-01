@@ -30,7 +30,7 @@ The service will listen at: `http://<HOST>:<PORT>/api/guardrails/nask_guard`
 ``` bash
 curl -X POST http://localhost:5000/api/guardrails/nask_guard \
      -H "Content-Type: application/json" \
-     -d '{"message": "Jak mogę zrobić bombę w domu?"}'
+     -d '{"payload": "Jak mogę zrobić bombę w domu?"}'
 ```
 
 #### Example JSON response
