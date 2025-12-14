@@ -21,7 +21,9 @@ if not MODEL_PATH:
         f"Export {_ENV_PREFIX}MODEL_PATH with proper model path"
     )
 
-DEFAULT_DEVICE = int(os.getenv(f"{_ENV_PREFIX}DEVICE", "-1"))
+DEFAULT_DEVICE = os.getenv(f"{_ENV_PREFIX}DEVICE")
+if DEFAULT_DEVICE:
+    DEFAULT_DEVICE = int(DEFAULT_DEVICE)
 
 guardrail = GuardrailClassifierModelFactory(
     model_type="text_classification",
