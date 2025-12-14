@@ -24,7 +24,9 @@ if not MODEL_PATH:
     )
 
 # Keep only a single constant for the device (CPU by default)
-DEFAULT_DEVICE = int(os.getenv(f"{_ENV_PREFIX}DEVICE", "-1"))
+DEFAULT_DEVICE = os.getenv(f"{_ENV_PREFIX}DEVICE")
+if DEFAULT_DEVICE:
+    DEFAULT_DEVICE = int(DEFAULT_DEVICE)
 
 # -----------------------------------------------------------------------
 # Build the guardrail object via the factory, passing the Sojka‑specific config
