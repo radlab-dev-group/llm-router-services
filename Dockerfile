@@ -1,18 +1,24 @@
 FROM reg-dev.radlab.dev/ai/gpu-base:cuda-12.2.2-ubuntu22.04
 
-WORKDIR /srv/
+ARG version=prod
+ARG GIT_REF=main
 
-RUN mkdir llm-router-services
-COPY . /srv/llm-router-services/
+LABEL authors="RadLab"
+LABEL version=$version
+
+WORKDIR /srv
+
+RUN git clone https://github.com/radlab-dev-group/llm-router-services.git && \
+    cd /srv/llm-router-services && \
+    git checkout ${GIT_REF}
 
 WORKDIR /srv/llm-router-services
 
 RUN pip3 install --no-cache-dir .
 
-#RUN pip3 install --no-cache-dir .[api]
+COPY --chmod=0755 entrypoint.sh entrypoint.sh
 
-COPY entrypoint.sh entrypoint.sh
-RUN chmod +x entrypoint.sh
+ENV PYTHONUNBUFFERED=1
 
-ENTRYPOINT ["/srv/llm-router/entrypoint.sh"]
+ENTRYPOINT ["/srv/llm-router-services/entrypoint.sh"]
 CMD ["--debug"]
