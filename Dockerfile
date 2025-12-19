@@ -1,4 +1,4 @@
-FROM reg-dev.radlab.dev/ai/gpu-base:cuda-12.2.2-ubuntu22.04
+FROM gpu-base:cuda-12.2.2-ubuntu22.04
 
 ARG version=prod
 ARG GIT_REF=main
