@@ -1,3 +1,4 @@
+# llm_router_services/guardrails/nask/nask_pib_guard_app.py
 import os
 from typing import Any, Dict
 
@@ -7,55 +8,48 @@ from llm_router_services.guardrails.constants import SERVICES_API_PREFIX
 from llm_router_services.guardrails.inference.factory import (
     GuardrailClassifierModelFactory,
 )
-
 from llm_router_services.guardrails.nask.config import NaskModelConfig
 
 _ENV_PREFIX = "LLM_ROUTER_NASK_PIB_GUARD_"
 
-app = Flask(__name__)
 
-MODEL_PATH = os.getenv(f"{_ENV_PREFIX}MODEL_PATH", None)
-if not MODEL_PATH:
-    raise Exception(
-        f"NASK-PIB guardrail model path is not set! "
-        f"Export {_ENV_PREFIX}MODEL_PATH with proper model path"
+# ----------------------------------------------------------------------
+# Helper: build the Guardrail instance (used both by the old script
+# and the new router).  Keeping it in a function makes the code reusable.
+# ----------------------------------------------------------------------
+def _build_guardrail() -> GuardrailClassifierModelFactory:
+    model_path = os.getenv(f"{_ENV_PREFIX}MODEL_PATH")
+    if not model_path:
+        raise RuntimeError(
+            f"NASK‑PIB guardrail model path not set – export {_ENV_PREFIX}MODEL_PATH"
+        )
+    device = os.getenv(f"{_ENV_PREFIX}DEVICE")
+    device = int(device) if device else -1
+
+    return GuardrailClassifierModelFactory(
+        model_type="text_classification",
+        model_path=model_path,
+        device=device,
+        config=NaskModelConfig(),
     )
 
-DEFAULT_DEVICE = os.getenv(f"{_ENV_PREFIX}DEVICE")
-if DEFAULT_DEVICE:
-    DEFAULT_DEVICE = int(DEFAULT_DEVICE)
 
-guardrail = GuardrailClassifierModelFactory(
-    model_type="text_classification",
-    model_path=MODEL_PATH,
-    device=DEFAULT_DEVICE,
-    config=NaskModelConfig(),
-)
+# ----------------------------------------------------------------------
+# Public function used by the central router to attach the endpoint.
+# ----------------------------------------------------------------------
+def register_routes(app: Flask) -> None:
+    """Register the /nask_guard endpoint on the given Flask app."""
+    guardrail = _build_guardrail()
 
+    @app.route(f"{SERVICES_API_PREFIX}/nask_guard", methods=["POST"])
+    def nask_guardrail():
+        """Handle a JSON payload and return guard‑rail results."""
+        if not request.is_json:
+            return jsonify({"error": "Request body must be JSON"}), 400
 
-# -----------------------------------------------------------------------
-# Endpoint: POST /api/guardrails/nask_guard
-# -----------------------------------------------------------------------
-@app.route(f"{SERVICES_API_PREFIX}/nask_guard", methods=["POST"])
-def nask_guardrail():
-    """
-    Accepts a JSON payload, classifies the content and returns the aggregated results.
-    """
-    if not request.is_json:
-        return jsonify({"error": "Request body must be JSON"}), 400
-
-    payload: Dict[str, Any] = request.get_json()
-    try:
-        results = guardrail.classify_chunks(payload)
-        return jsonify({"results": results}), 200
-    except Exception as exc:  # pragma: no cover – safety net
-        return jsonify({"error": str(exc)}), 500
-
-
-# -----------------------------------------------------------------------
-# Run the Flask server (only when executed directly)
-# -----------------------------------------------------------------------
-if __name__ == "__main__":
-    host = os.getenv(f"{_ENV_PREFIX}FLASK_HOST", "0.0.0.0")
-    port = int(os.getenv(f"{_ENV_PREFIX}FLASK_PORT", "5000"))
-    app.run(host=host, port=port, debug=False)
+        payload: Dict[str, Any] = request.get_json()
+        try:
+            results = guardrail.classify_chunks(payload)
+            return jsonify({"results": results}), 200
+        except Exception as exc:  # pragma: no cover – safety net
+            return jsonify({"error": str(exc)}), 500
