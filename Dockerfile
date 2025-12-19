@@ -21,4 +21,3 @@ COPY --chmod=0755 entrypoint.sh entrypoint.sh
 ENV PYTHONUNBUFFERED=1
 
 ENTRYPOINT ["/srv/llm-router-services/entrypoint.sh"]
-CMD ["--debug"]
