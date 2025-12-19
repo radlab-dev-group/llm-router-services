@@ -18,7 +18,7 @@ _SERVICE_REGISTRY = [
         "env": "LLM_ROUTER_SOJKA_GUARD_ENABLED",
     },
     {
-        "module": "llm_router_services.guardrails.ping_guard_app",
+        "module": "llm_router_services.general.ping_guard_app",
     },
 ]
 
