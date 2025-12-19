@@ -17,6 +17,9 @@ _SERVICE_REGISTRY = [
         "module": "llm_router_services.guardrails.speakleash.sojka_guard_app",
         "env": "LLM_ROUTER_SOJKA_GUARD_ENABLED",
     },
+    {
+        "module": "llm_router_services.guardrails.ping_guard_app",
+    },
 ]
 
 
@@ -25,7 +28,8 @@ def create_app() -> Flask:
     app = Flask(__name__)
 
     for entry in _SERVICE_REGISTRY:
-        if os.getenv(entry["env"], "0") not in {"1", "true", "True"}:
+        env_var = entry.get("env")
+        if env_var and os.getenv(env_var, "0") not in {"1", "true", "True"}:
             # Service disabled – skip it
             continue
 
