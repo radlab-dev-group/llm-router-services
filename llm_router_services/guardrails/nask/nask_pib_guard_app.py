@@ -4,7 +4,7 @@ from typing import Any, Dict
 
 from flask import Flask, request, jsonify
 
-from llm_router_services.guardrails.constants import SERVICES_API_PREFIX
+from llm_router_services.guardrails.constants import GUARDRAIL_SERVICES_API_PREFIX
 from llm_router_services.guardrails.inference.factory import (
     GuardrailClassifierModelFactory,
 )
@@ -41,7 +41,7 @@ def register_routes(app: Flask) -> None:
     """Register the /nask_guard endpoint on the given Flask app."""
     guardrail = _build_guardrail()
 
-    @app.route(f"{SERVICES_API_PREFIX}/nask_guard", methods=["POST"])
+    @app.route(f"{GUARDRAIL_SERVICES_API_PREFIX}/nask_guard", methods=["POST"])
     def nask_guardrail():
         """Handle a JSON payload and return guard‑rail results."""
         if not request.is_json:
