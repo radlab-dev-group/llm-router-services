@@ -2,7 +2,7 @@ FROM nvidia/cuda:12.2.2-runtime-ubuntu22.04
 
 LABEL authors="RadLab"
 
-RUN apt-get update && apt-get upgrade -y && apt-get install -y python3 python3-pip htop curl jq git vim nmap iputils-ping && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get upgrade -y && apt-get install -y python3 python3-pip htop curl jq git vim nmap iputils-ping nvtop && rm -rf /var/lib/apt/lists/*
 
 RUN pip3 install --upgrade pip
 RUN pip3 install torch
