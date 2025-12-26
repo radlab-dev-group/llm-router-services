@@ -17,6 +17,8 @@ WORKDIR /srv/llm-router-services
 
 RUN pip3 install --no-cache-dir .
 
+RUN cp docker/entrypoint.sh /entrypoint.sh && chmod +x /entrypoint.sh
+
 ARG USER_ID=5000
 ARG GROUP_ID=5000
 RUN groupadd -g ${GROUP_ID} llm-router && \
