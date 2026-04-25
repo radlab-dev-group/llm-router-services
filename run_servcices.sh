@@ -27,7 +27,7 @@
 : "${LLM_ROUTER_NASK_PIB_GUARD_MODEL_PATH:=NASK-PIB/Herbert-PL-Guard}"
 : "${LLM_ROUTER_NASK_PIB_GUARD_DEVICE:=-1}"
 : "${LLM_ROUTER_SOJKA_GUARD_MODEL_PATH:=speakleash/Bielik-Guard-0.1B-v1.0}"
-: "${LLM_ROUTER_SOJKA_GUARD_DEVICE:=-1}"
+: "${LLM_ROUTER_SOJKA_GUARD_DEVICE:=-3}"
 
 # ---- export so Python can read them ---------------------------
 export LLM_ROUTER_API_HOST
