@@ -1,7 +1,8 @@
 from typing import Tuple, Dict
 
-from llm_router_plugins.maskers.payload_interface import MaskerPayloadTraveler
 from pii_classification.inference.inference import AnonPredictor
+
+from llm_router_plugins.maskers.payload_interface import MaskerPayloadTraveler
 
 from llm_router_services.maskers.inference.base import MaskerBase
 from llm_router_services.maskers.inference.config import MaskerModelConfig

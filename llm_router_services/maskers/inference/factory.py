@@ -1,7 +1,7 @@
+from llm_router_plugins.maskers.pii.pii_masker_plugin import PiiMaskerPlugin
+
 from llm_router_services.maskers.inference.config import MaskerModelConfig
 from llm_router_services.maskers.pii_classification.pii_masker import PIIMasker
-
-from llm_router_plugins.maskers.pii.pii_masker_plugin import PiiMaskerPlugin
 
 
 def create_masker(

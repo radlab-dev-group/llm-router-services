@@ -1,5 +1,6 @@
 from typing import Optional
 from dataclasses import dataclass
+
 from llm_router_services.maskers.inference.config import MaskerModelConfig
 
 
