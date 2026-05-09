@@ -3,6 +3,7 @@ from typing import Any, Dict
 from flask import Flask, request, jsonify
 
 from llm_router_services.maskers.constants import MASKER_SERVICES_API_PREFIX
+from llm_router_services.maskers.inference.base import MaskerBase
 from llm_router_services.maskers.inference.factory import MaskerModelFactory
 from llm_router_services.maskers.pii_classification.config import PIIMaskerConfig
 
@@ -35,7 +36,8 @@ def register_routes(app: Flask) -> None:
 
         payload: Dict[str, Any] = request.get_json()
         try:
-            anon_payload, mappings = masker.mask_payload(payload)
-            return jsonify({"anonymized": anon_payload, "mappings": mappings}), 200
+            return MaskerBase.call_and_return_masker_result(
+                f_map=masker.mask_payload, payload=payload
+            )
         except Exception as exc:
             return jsonify({"error": str(exc)}), 500
