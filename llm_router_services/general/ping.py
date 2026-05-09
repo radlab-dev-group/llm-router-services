@@ -7,7 +7,7 @@ Provides:
 
 from flask import Flask, jsonify
 
-from llm_router_services.guardrails.constants import SERVICES_API_PREFIX
+from llm_router_services.general.constants import SERVICES_API_PREFIX
 
 
 def register_routes(app: Flask) -> None:
