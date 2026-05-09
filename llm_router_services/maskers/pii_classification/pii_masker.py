@@ -1,0 +1,28 @@
+from typing import Tuple, Dict
+
+from llm_router_plugins.maskers.payload_interface import MaskerPayloadTraveler
+from pii_classification.inference.inference import AnonPredictor
+
+from llm_router_services.maskers.inference.base import MaskerBase
+from llm_router_services.maskers.inference.config import MaskerModelConfig
+
+
+class PIIMasker(MaskerBase, MaskerPayloadTraveler):
+
+    def __init__(
+        self, model_path: str, device: str, config: MaskerModelConfig | None = None
+    ):
+        super().__init__(
+            config=config,
+            predictor=AnonPredictor(
+                model_path=model_path,
+                use_quantized=config.use_quantization if config else True,
+                device=device,
+            ),
+        )
+
+    def _mask_text(self, text: str) -> Tuple[str, Dict]:
+        res = self._predictor.predict_and_anonymize(text=text)
+        if not res:
+            return text, {}
+        return res.get("text", text), res.get("mappings", {})
