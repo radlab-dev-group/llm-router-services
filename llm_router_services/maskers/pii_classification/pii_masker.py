@@ -23,7 +23,10 @@ class PIIMasker(MaskerBase, MaskerPayloadTraveler):
         )
 
     def _mask_text(self, text: str) -> Tuple[str, Dict]:
-        res = self._predictor.predict_and_anonymize(text=text)
+        res = self._predictor.predict_and_anonymize(
+            text=text, labels=self._config.default_labels
+        )
+
         if not res:
             return text, {}
         return res.get("text", text), res.get("mappings", {})
