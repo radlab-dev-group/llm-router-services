@@ -35,7 +35,7 @@ def register_routes(app: Flask) -> None:
 
         payload: Dict[str, Any] = request.get_json()
         try:
-            text, mappings = masker.mask_payload(payload)
-            return jsonify({"text": text, "mappings": mappings}), 200
+            anon_payload, mappings = masker.mask_payload(payload)
+            return jsonify({"anonymized": anon_payload, "mappings": mappings}), 200
         except Exception as exc:
             return jsonify({"error": str(exc)}), 500
