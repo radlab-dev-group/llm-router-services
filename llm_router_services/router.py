@@ -18,6 +18,10 @@ _SERVICE_REGISTRY = [
         "env": "LLM_ROUTER_SOJKA_GUARD_ENABLED",
     },
     {
+        "module": "llm_router_services.maskers.pii_classification.pii_masker_app",
+        "env": "LLM_ROUTER_PII_MASKER_ENABLED",
+    },
+    {
         "module": "llm_router_services.general.ping",
     },
 ]
@@ -29,7 +33,14 @@ def create_app() -> Flask:
 
     for entry in _SERVICE_REGISTRY:
         env_var = entry.get("env")
+
+        _is_enabled = True
         if env_var and os.getenv(env_var, "0") not in {"1", "true", "True"}:
+            _is_enabled = False
+
+        print(entry, env_var, _is_enabled)
+
+        if not _is_enabled:
             # Service disabled – skip it
             continue
 

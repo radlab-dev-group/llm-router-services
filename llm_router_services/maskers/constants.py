@@ -1,3 +1,3 @@
 from llm_router_services.general.constants import SERVICES_API_PREFIX
 
-GUARDRAIL_SERVICES_API_PREFIX = f"{SERVICES_API_PREFIX}/guardrails"
+MASKER_SERVICES_API_PREFIX = f"{SERVICES_API_PREFIX}/maskers"

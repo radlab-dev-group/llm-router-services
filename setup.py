@@ -29,6 +29,13 @@ def parse_requirements() -> list[str]:
     ]
 
 
+def get_git_requirements() -> list[str]:
+    return [
+        "llm-router-plugins @ "
+        "git+https://github.com/radlab-dev-group/llm-router-plugins.git"
+    ]
+
+
 # ----------------------------------------------------------------------
 # Setup configuration
 # ----------------------------------------------------------------------
@@ -42,7 +49,7 @@ setup(
     license="Apache 2.0",
     packages=find_packages(),
     include_package_data=True,
-    install_requires=parse_requirements(),
+    install_requires=parse_requirements() + get_git_requirements(),
     python_requires=">=3.8",
     classifiers=[
         "Programming Language :: Python :: 3",
