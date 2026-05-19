@@ -7,15 +7,13 @@ ARG GIT_REF=main
 LABEL authors="RadLab"
 LABEL version=$version
 
-WORKDIR /srv
-
-RUN git clone https://github.com/radlab-dev-group/llm-router-services.git && \
-    cd /srv/llm-router-services && \
-    git checkout ${GIT_REF}
+COPY . /srv/llm-router-services
 
 WORKDIR /srv/llm-router-services
 
 RUN pip3 install --no-cache-dir .
+
+RUN cp docker/entrypoint.sh entrypoint.sh && chmod +x entrypoint.sh
 
 ARG USER_ID=5000
 ARG GROUP_ID=5000
