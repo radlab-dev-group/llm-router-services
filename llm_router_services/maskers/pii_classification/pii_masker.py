@@ -8,6 +8,9 @@ from llm_router_services.maskers.inference.base import MaskerBase
 from llm_router_services.maskers.inference.config import MaskerModelConfig
 
 
+_GLOBAL_CACHE: Dict[str, Tuple[str, Dict]] = {}
+
+
 class PIIMasker(MaskerBase, MaskerPayloadTraveler):
 
     def __init__(
@@ -23,10 +26,17 @@ class PIIMasker(MaskerBase, MaskerPayloadTraveler):
         )
 
     def _mask_text(self, text: str) -> Tuple[str, Dict]:
+        if text in _GLOBAL_CACHE:
+            return _GLOBAL_CACHE[text]
+
         res = self._predictor.predict_and_anonymize(
             text=text, labels=self._config.default_labels
         )
 
         if not res:
             return text, {}
-        return res.get("text", text), res.get("mappings", {})
+
+        result = (res.get("text", text), res.get("mappings", {}))
+        _GLOBAL_CACHE[text] = result
+
+        return result
