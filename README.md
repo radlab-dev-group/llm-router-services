@@ -6,14 +6,15 @@
 All functionality (guard‑rails, maskers, …) is exposed through **one Flask application** that can be started with a
 single command or via Gunicorn.
 
-| Sub‑package          | Purpose                                                                                                                                            |
-|----------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| **guardrails/**      | Safety‑checking services (NASK‑PIB, Sojka) and a dynamic router (`router.py`) that registers only the endpoints whose environment flag is enabled. |
-| **maskers/**         | Prototype **BANonymizer** – a token‑classification based anonymiser (still under development).                                                     |
-| **run_servcices.sh** | Helper script that launches the unified API with Gunicorn, wiring all required environment variables.                                              |
-| **requirements.txt** | Heavy dependencies (e.g. `transformers`) needed for GPU‑accelerated inference.                                                                     |
+| Sub‑package          | Purpose                                                                                                                                              |
+|----------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **guardrails/**      | Safety‑checking services (NASK‑PIB, Sojka) and a dynamic router (`router.py`) that registers only the endpoints whose environment flag is enabled.   |
+| **maskers/**         | **PIIMasker** – a token‑classification based PII anonymiser with an **in‑memory cache** that avoids redundant model calls for identical text inputs. |
+| **run_servcices.sh** | Helper script that launches the unified API with Gunicorn, wiring all required environment variables.                                                |
+| **requirements.txt** | Heavy dependencies (e.g. `transformers`) needed for GPU‑accelerated inference.                                                                       |
 
-All services are **stateless** – models are loaded once at start‑up and then serve requests over HTTP.
+All services load models once at start‑up and serve requests over HTTP.
+The masker caches predictions in memory for the lifetime of the process.
 
 ---
 
@@ -80,11 +81,11 @@ Both commands bind to `0.0.0.0:5000` (or the values you supplied).
 
 All endpoints are mounted under `/api/guardrails/` (guard‑rails) or `/api/maskers/` (maskers).
 
-| Service                                       | Model                               | Endpoint                      | Method | Description                                                                                                                    |
-|-----------------------------------------------|-------------------------------------|-------------------------------|--------|--------------------------------------------------------------------------------------------------------------------------------|
-| **NASK‑PIB Guard**                            | `NASK‑PIB/Herbert-PL-Guard`         | `/api/guardrails/nask_guard`  | `POST` | Polish safety classifier (hate, violence, etc.). Returns `safe: bool` and per‑chunk classification details.                    |
-| **Sojka Guard**                               | `speakleash/Bielik-Guard-0.1B-v1.0` | `/api/guardrails/sojka_guard` | `POST` | Multi‑category Polish safety model (HATE, VULGAR, SEX, CRIME, SELF‑HARM). Returns per‑category scores and overall `safe` flag. |
-| **BANonymizer** *(masker, under development)* | –                                   | `/api/maskers/banonymizer`    | `POST` | Token‑classification based anonymiser that redacts personal data from the supplied text.                                       |
+| Service                  | Model                               | Endpoint                      | Method | Description                                                                                                                                            |
+|--------------------------|-------------------------------------|-------------------------------|--------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **NASK‑PIB Guard**       | `NASK‑PIB/Herbert-PL-Guard`         | `/api/guardrails/nask_guard`  | `POST` | Polish safety classifier (hate, violence, etc.). Returns `safe: bool` and per‑chunk classification details.                                            |
+| **Sojka Guard**          | `speakleash/Bielik-Guard-0.1B-v1.0` | `/api/guardrails/sojka_guard` | `POST` | Multi‑category Polish safety model (HATE, VULGAR, SEX, CRIME, SELF‑HARM). Returns per‑category scores and overall `safe` flag.                         |
+| **PIIMasker** *(masker)* | PIIMasker (token classification)    | `/api/maskers/pii_masker`     | `POST` | Detects and redacts PII entities (PERSON, LOCATION, ORGANIZATION, etc.). Returns `anonymized` text plus `mappings`. Caches identical inputs in‑memory. |
 
 ### Request payload
 
@@ -194,17 +195,21 @@ curl -X POST http://localhost:5000/api/guardrails/nask_guard \
 
 ## ⚙️ Configuration (environment variables)
 
-| Variable                               | Description                                                         | Default   |
-|----------------------------------------|---------------------------------------------------------------------|-----------|
-| `LLM_ROUTER_API_HOST`                  | Host address for the Flask app                                      | `0.0.0.0` |
-| `LLM_ROUTER_API_PORT`                  | Port for the Flask app                                              | `5000`    |
-| `LLM_ROUTER_NASK_PIB_GUARD_ENABLED`    | `1` → expose NASK‑PIB endpoint                                      | `0`       |
-| `LLM_ROUTER_NASK_PIB_GUARD_MODEL_PATH` | HF hub ID or local path for the NASK model                          | –         |
-| `LLM_ROUTER_NASK_PIB_GUARD_DEVICE`     | `-1` = CPU, `0`/`1` … = CUDA device index                           | `-1`      |
-| `LLM_ROUTER_SOJKA_GUARD_ENABLED`       | `1` → expose Sojka endpoint                                         | `1`       |
-| `LLM_ROUTER_SOJKA_GUARD_MODEL_PATH`    | HF hub ID or local path for the Sojka model                         | –         |
-| `LLM_ROUTER_SOJKA_GUARD_DEVICE`        | Same semantics as above                                             | `-1`      |
-| `LLM_ROUTER_BANONYMIZER_…`             | Future variables for the BANonymizer (e.g., `MODEL_PATH`, `DEVICE`) | –         |
+| Variable                                | Description                                                         | Default   |
+|-----------------------------------------|---------------------------------------------------------------------|-----------|
+| `LLM_ROUTER_API_HOST`                   | Host address for the Flask app                                      | `0.0.0.0` |
+| `LLM_ROUTER_API_PORT`                   | Port for the Flask app                                              | `5000`    |
+| `LLM_ROUTER_NASK_PIB_GUARD_ENABLED`     | `1` → expose NASK‑PIB endpoint                                      | `0`       |
+| `LLM_ROUTER_NASK_PIB_GUARD_MODEL_PATH`  | HF hub ID or local path for the NASK model                          | –         |
+| `LLM_ROUTER_NASK_PIB_GUARD_DEVICE`      | `-1` = CPU, `0`/`1` … = CUDA device index                           | `-1`      |
+| `LLM_ROUTER_SOJKA_GUARD_ENABLED`        | `1` → expose Sojka endpoint                                         | `1`       |
+| `LLM_ROUTER_SOJKA_GUARD_MODEL_PATH`     | HF hub ID or local path for the Sojka model                         | –         |
+| `LLM_ROUTER_SOJKA_GUARD_DEVICE`         | Same semantics as above                                             | `-1`      |
+| `LLM_ROUTER_PIIMASKER_ENABLED`          | `1` → expose the PII Masker endpoint                                | `0`       |
+| `LLM_ROUTER_PIIMASKER_MODEL_PATH`       | HF hub ID or local path for the PIIMasker model                     | –         |
+| `LLM_ROUTER_PIIMASKER_DEVICE`           | `-1` = CPU, `0`/`1` … = CUDA device index                           | `-1`      |
+| `LLM_ROUTER_PIIMASKER_USE_QUANTIZATION` | Whether to use a quantized model (improves latency)                 | `1`       |
+| `LLM_ROUTER_BANONYMIZER_…`              | Future variables for the BANonymizer (e.g., `MODEL_PATH`, `DEVICE`) | –         |
 
 You can also set these variables inline when invoking the script, e.g.:
 
