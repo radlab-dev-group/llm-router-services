@@ -3,11 +3,12 @@
 ## Overview  
 This repository contains everything needed to containerise the **LLM‑Router** services with GPU support:
 
-| Component | File | Purpose |
-|-----------|------|---------|
-| **Base image** | `Dockerfile.base` | Builds a CUDA‑enabled Ubuntu image with common utilities and PyTorch. |
-| **Application image** | `Dockerfile` | Extends the base image, pulls the service source code, installs Python dependencies, creates a non‑root user, and sets the entrypoint. |
-| **Entrypoint script** | `entrypoint.sh` | Handles optional debug mode and launches the main service script (`run_servcices.sh`). |
+| Component | File                | Purpose                                                                                                                                |
+|-----------|---------------------|----------------------------------------------------------------------------------------------------------------------------------------|
+| **Base image** | `Dockerfile.base`   | Builds a CUDA‑enabled Ubuntu image with common utilities and PyTorch.                                                                  |
+| **Application image** | `Dockerfile`        | Extends the base image, pulls the service source code, installs Python dependencies, creates a non‑root user, and sets the entrypoint. |
+| **No-CUDA application image** | `Dockerfile.nocuda` | Standalone build image (Python + PyTorch, no NVIDIA/CUDA dependency). Useful for CPU-only deployment or when the CUDA base image is unavailable. |
+| **Entrypoint script** | `entrypoint.sh`     | Handles optional debug mode and launches the main service script (`run_servcices.sh`).                                                 |
 
 The steps below assume you have a recent Docker installation (Docker 20.10+ with the NVIDIA Container Toolkit for GPU access).
 
@@ -41,8 +42,9 @@ It is built from **Dockerfile.base**, which accepts an optional `BASE_IMAGE` bui
 `gpu-base:cuda-12.2.2-ubuntu22.04` and can be used as a foundation for the application image.
 
 ```shell script
-# From the repository root (where Dockerfile.base lives)
-docker build -t gpu-base:cuda-12.2.2-ubuntu22.04 -f Dockerfile.base .
+# From the project ROOT (not inside docker/)
+docker build -f docker/Dockerfile.base \
+  -t gpu-base:cuda-12.2.2-ubuntu22.04 .
 ```
 
 
@@ -59,14 +61,18 @@ docker push my-registry.example.com/gpu-base:cuda-12.2.2-ubuntu22.04
 ## 2. Build the Application Image  
 
 The application image is based on the **gpu‑base** image you just built (or on any image you
-specify via the `BASE_IMAGE` build‑arg). It clones the service repository, installs the
+specify via the `BASE_IMAGE` build‑arg). It copies the service source code, installs the
 Python package, creates a dedicated user, and sets the entrypoint.
 
+> ⚠️ **Important:** The Docker build context must be the **project root** (where `setup.py` lives),
+because `COPY .` copies everything from there — including the `llm_router_services/` package directory
+and `setup.py`. The Docker file itself is passed via `-f`:
+
 ```shell script
-# From the repository root (where Dockerfile lives)
+# Run this from the project ROOT (not inside docker/)
 docker build \
+  -f docker/Dockerfile \
   --build-arg version=prod \               # optional: override the image label
-  --build-arg GIT_REF=main \               # optional: checkout a different git branch/tag
   --build-arg USER_ID=5000 \               # optional: custom UID for the runtime user
   --build-arg GROUP_ID=5000 \              # optional: custom GID for the runtime group
   --build-arg BASE_IMAGE=gpu-base:cuda-12.2.2-ubuntu22.04 \  # optional: custom base image
@@ -79,46 +85,74 @@ docker build \
 | Argument | Default | Description |
 |----------|---------|-------------|
 | `version` | `prod` | Image label used for documentation / versioning. |
-| `GIT_REF` | `main` | Git reference (branch, tag, or commit) to checkout. |
 | `USER_ID` / `GROUP_ID` | `5000` | UID/GID for the non‑root `llm-router` user inside the container. |
 | `BASE_IMAGE` | `gpu-base:cuda-12.2.2-ubuntu22.04` | Base image for the application; can be any compatible CUDA image. |
 
 ---  
 
-## 3. Run the Container  
+## 3. Build the No-CUDA Application Image  
+
+When you don't need GPU support (CPU-only deployment) or can't use the CUDA base image, use **Dockerfile.nocuda**.  
+It is a fully standalone image based on `python:3.14.6-trixie` with Python 3, PyTorch, UTF-8 locale settings, and all required utilities baked in.
+
+> ⚠️ Same as above — run from the **project root** with `-f docker/Dockerfile.nocuda`:
+
+```shell script
+# Run this from the project ROOT (not inside docker/)
+docker build \
+  -f docker/Dockerfile.nocuda \
+  --build-arg version=prod \
+  -t llm-router-services:prod-cpu .
+```
+
+> **Note** – This image is larger than a typical multi-stage CUDA build because PyTorch and all system dependencies are installed in a single stage.  
+> It does **not** require the NVIDIA Container Toolkit to run.
+
+---  
+
+## 4. Run the Container  
 
 The container expects the `entrypoint.sh` script (included in the repository) to be present at
 `/srv/llm-router-services/entrypoint.sh` inside the image. It will launch `run_servcices.sh`
 (the service starter) unless you enable debug mode.
 
+### GPU build (`llm-router-services:prod`)
+
 ```shell script
 docker run -it --rm \
-  --gpus all \                         # expose GPU(s) to the container
+  --gpus all \                         # expose GPU(s) to the container — required for CUDA builds
   -p 5000:5000 \                       # map the service port (adjust if needed)
   -e HF_TOKEN=YOUR_HF_TOKEN \          # **required** HuggingFace access token
   llm-router-services:prod
 ```
 
+### CPU build (`llm-router-services:prod-cpu`)
 
-### Debug / Interactive Mode  
-
-If you need to poke around inside the container (e.g., inspect logs, run ad‑hoc commands), start it with the `--debug` flag:
+> No `--gpus` flag needed — the nocuda image works on any host.
 
 ```shell script
 docker run -it --rm \
-  --gpus all \
+  -p 5000:5000 \
+  -e HF_TOKEN=YOUR_HF_TOKEN \
+  llm-router-services:prod-cpu
+```
+
+### Debug / Interactive Mode
+
+For either build, add the `--debug` flag to pause inside the container (allows `docker exec`):
+
+```shell script
+docker run -it --rm \
   -p 5000:5000 \
   -e HF_TOKEN=YOUR_HF_TOKEN \
   llm-router-services:prod --debug
 ```
 
-
-The entrypoint will pause indefinitely (`sleep infinity`) allowing you to
-`docker exec -it <container-id> bash` and explore.
+The entrypoint will sleep indefinitely, so you can `docker exec -it <container-id> bash` and explore.
 
 ---  
 
-## 4. Customising Runtime Behaviour  
+## 5. Customising Runtime Behaviour  
 
 | Variable | Where to set | Description |
 |----------|--------------|-------------|
@@ -131,14 +165,14 @@ The entrypoint will pause indefinitely (`sleep infinity`) allowing you to
 
 ---  
 
-## 5. Cleaning Up  
+## 6. Cleaning Up  
 
 ```shell script
 # Remove stopped containers (if any)
 docker container prune -f
 
 # Remove images
-docker image rm gpu-base:cuda-12.2.2-ubuntu22.04 llm-router-services:prod
+docker image rm gpu-base:cuda-12.2.2-ubuntu22.04 llm-router-services:prod llm-router-services:prod-cpu
 ```
 
 
@@ -146,7 +180,7 @@ If you pushed the images to a registry, delete them there as well.
 
 ---  
 
-## 6. Troubleshooting  
+## 7. Troubleshooting  
 
 | Symptom | Likely Cause | Fix                                                                                                                           |
 |---------|--------------|-------------------------------------------------------------------------------------------------------------------------------|
@@ -157,19 +191,39 @@ If you pushed the images to a registry, delete them there as well.
 | Debug mode does not pause | Wrong argument spelling | Use `--debug`, `debug`, `--shell`, or `shell` (any of these activate debug mode).                                             |
 | Hugging Face authentication fails | `HF_TOKEN` not set or invalid | Supply a valid token via `-e HF_TOKEN=…` when running the container and check if you have confirmed the licenses for the models used                                                |
 | Model files are re‑downloaded on each start | No persistent cache volume | Mount a host directory to `/srv/cache` (see **Cache volume** above).                                                          |
+| `torch` CUDA errors or missing GPU at runtime | Running nocuda image with `--gpus` flag | The nocuda build does not include NVIDIA support — remove the `--gpus` flag when running it.                                  |
 
 ---  
 
-## 7. Quick One‑Liner (for developers)  
+## 8. Quick One‑Liners (for developers)
+
+### GPU (CUDA) build & run
 
 ```shell script
-docker build -t gpu-base:cuda-12.2.2-ubuntu22.04 -f Dockerfile.base . && \
-docker build -t llm-router-services:prod . && \
+# Run from project ROOT (not inside docker/)
+docker build -f docker/Dockerfile.base \
+  -t gpu-base:cuda-12.2.2-ubuntu22.04 . && \
+docker build -f docker/Dockerfile \
+  --build-arg version=prod \
+  -t llm-router-services:prod . && \
 docker run -it --rm --gpus all -p 5000:5000 \
   -e HF_TOKEN=YOUR_HF_TOKEN \
   -v "$HOME/hf_cache":/srv/cache \
   llm-router-services:prod
 ```
 
+### CPU-only build & run
 
-That’s it! You now have a reproducible, GPU‑enabled container ready to serve the LLM‑Router services. 🚀
+```shell script
+# Run from project ROOT (not inside docker/)
+docker build -f docker/Dockerfile.nocuda \
+  --build-arg version=prod \
+  -t llm-router-services:prod-cpu . && \
+docker run -it --rm -p 5000:5000 \
+  -e HF_TOKEN=YOUR_HF_TOKEN \
+  -v "$HOME/hf_cache":/srv/cache \
+  llm-router-services:prod-cpu
+```
+
+
+That's it! You now have a reproducible, GPU‑enabled container ready to serve the LLM‑Router services. 🚀
