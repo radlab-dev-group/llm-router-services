@@ -1,0 +1,56 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    tags:
+      - '*'
+
+permissions:
+  contents: read
+
+jobs:
+  docker:
+    runs-on:
+      - self-hosted
+      - builder
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get image version
+        id: vars
+        shell: bash
+        run: |
+                    echo "VERSION=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to Quay
+        uses: docker/login-action@v4
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_PASSWORD }}
+
+      - name: Build and Push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: true
+          no-cache: true
+          provenance: false
+          tags: |
+            quay.io/radlab/llm-router-services:${{ steps.vars.outputs.VERSION }}
+            quay.io/radlab/llm-router-services:latest            
+
+      - name: Cleanup local images
+        if: always()
+        run: |
+          docker images 'quay.io/radlab/llm-router-services' --format '{{.ID}}' | xargs docker rmi -f || true       
+
+      - name: Logout
+        if: always()
+        run: docker logout quay.io

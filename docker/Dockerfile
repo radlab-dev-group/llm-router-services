@@ -2,7 +2,6 @@ ARG BASE_IMAGE=gpu-base:cuda-12.2.2-ubuntu22.04
 FROM ${BASE_IMAGE}
 
 ARG version=prod
-ARG GIT_REF=main
 
 LABEL authors="RadLab"
 LABEL version=$version
